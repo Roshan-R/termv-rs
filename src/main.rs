@@ -16,7 +16,9 @@ pub fn main() {
     let d = Downloader::new();
 
     if !d.check_file_exists() {
-        d.download();
+        d.first_download();
+    } else {
+        d.update_if_changed();
     }
 
     let options = SkimOptionsBuilder::default()
