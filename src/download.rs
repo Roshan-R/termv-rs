@@ -1,9 +1,9 @@
-// use reqwest;
-
 use std::fs;
 use std::path::Path;
 
 use whoami::username;
+
+use ureq;
 
 pub fn check_file_exists() -> bool {
     let username = username();
@@ -21,10 +21,11 @@ pub fn download() {
 
     println!("Downloading json file...");
 
-    let body = reqwest::blocking::get("https://iptv-org.github.io/iptv/channels.json")
-        .unwrap()
-        .text()
+    let resp = ureq::get("https://iptv-org.github.io/iptv/channels.json")
+        .call()
         .unwrap();
+
+    let body = resp.into_string().unwrap();
 
     println!("Done!");
 
