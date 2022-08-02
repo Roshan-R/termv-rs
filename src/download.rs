@@ -5,29 +5,41 @@ use whoami::username;
 
 use ureq;
 
-pub fn check_file_exists() -> bool {
-    let username = username();
-    let json_path = format!("/home/{}/.cache/termv-rs/d.json", username);
-    Path::new(json_path.as_str()).exists()
+pub struct Downloader {
+    dir_path: String,
+    json_path: String,
 }
 
-pub fn download() {
-    let username = username();
-    let dir_path = format!("/home/{}/.cache/termv-rs/", username);
-    let json_path = format!("/home/{}/.cache/termv-rs/d.json", username);
+impl Downloader {
+    pub fn new() -> Self {
+        let username = username().to_string();
+        let dir_path = format!("/home/{}/.cache/termv-rs/", username.as_str());
+        let file_name = "d.json";
+        let json_path = format!("{}/{}", dir_path, file_name);
+        Self {
+            dir_path,
+            json_path,
+        }
+    }
 
-    let d = Path::new(dir_path.as_str());
-    fs::create_dir_all(d).unwrap();
+    pub fn check_file_exists(&self) -> bool {
+        Path::new(self.json_path.as_str()).exists()
+    }
 
-    println!("Downloading json file...");
+    pub fn download(&self) {
+        let d = Path::new(self.dir_path.as_str());
+        fs::create_dir_all(d).unwrap();
 
-    let resp = ureq::get("https://iptv-org.github.io/iptv/channels.json")
-        .call()
-        .unwrap();
+        println!("Downloading json file...");
 
-    let body = resp.into_string().unwrap();
+        let resp = ureq::get("https://iptv-org.github.io/iptv/channels.json")
+            .call()
+            .unwrap();
 
-    println!("Done!");
+        let body = resp.into_string().unwrap();
 
-    fs::write(json_path, body).expect("Unable to write file");
+        println!("Done!");
+
+        fs::write(self.json_path.as_str(), body).expect("Unable to write file");
+    }
 }

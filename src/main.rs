@@ -1,5 +1,4 @@
 extern crate skim;
-use download::{check_file_exists, download};
 use skim::prelude::*;
 use std::fs;
 use std::process::Command;
@@ -11,11 +10,15 @@ mod download;
 use whoami::username;
 
 use channel::Channel;
+use download::Downloader;
 
 pub fn main() {
-    if !check_file_exists() {
-        download();
+    let d = Downloader::new();
+
+    if !d.check_file_exists() {
+        d.download();
     }
+
     let options = SkimOptionsBuilder::default()
         .height(Some("100%"))
         .multi(false)
