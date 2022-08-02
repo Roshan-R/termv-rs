@@ -36,6 +36,7 @@ impl Downloader {
         println!("Downloading json file...");
 
         let resp = ureq::get("https://iptv-org.github.io/iptv/channels.json")
+            .set("Accept-Encoding", "gzip")
             .call()
             .unwrap();
 
