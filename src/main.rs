@@ -32,20 +32,40 @@ pub fn main() {
     let json = fs::read_to_string(json_path).expect("Error reading data file");
 
     let channels: Vec<Channel> = serde_json::from_str(json.as_str()).unwrap();
-    let names: Vec<String> = channels.iter().map(|f| f.name.clone()).collect();
+    // let names: Vec<String> = channels.iter().map(|f| f.name.clone()).collect();
 
     let mut map = HashMap::new();
 
-    for channel in channels.into_iter() {
-        map.insert(channel.name, channel.url);
+    for channel in channels.iter() {
+        map.insert(channel.name.clone(), channel.url.clone());
     }
 
-    let input = names.join("\n");
+    let mut new_input = String::new();
+    for x in channels.into_iter() {
+        let category = match x.categories.first() {
+            Some(c) => c.name.clone(),
+            None => "Null".to_string(),
+        };
+        let language = match x.languages.first() {
+            Some(c) => c.name.clone(),
+            None => "Null".to_string(),
+        };
+        let country = match x.countries.first() {
+            Some(c) => c.name.clone(),
+            None => "Null".to_string(),
+        };
+
+        let a = format!(
+            "{:<50}  |{:<15} |{:<10} |{:<10}\n",
+            x.name, category, language, country
+        );
+        new_input.push_str(a.as_str());
+    }
 
     // // `SkimItemReader` is a helper to turn any `BufRead` into a stream of `SkimItem`
     // // `SkimItem` was implemented for `AsRef<str>` by default
     let item_reader = SkimItemReader::default();
-    let items = item_reader.of_bufread(Cursor::new(input));
+    let items = item_reader.of_bufread(Cursor::new(new_input));
 
     // // // `run_with` would read and show items from the stream
     let selected_items = Skim::run_with(&options, Some(items))
@@ -56,7 +76,8 @@ pub fn main() {
 
     for item in selected_items.iter() {
         let i = item.output();
-        url = map.get(i.to_string().as_str()).unwrap();
+        let s = i.split('|').rev().last().unwrap().trim_end();
+        url = map.get(s).unwrap();
     }
 
     println!("Opening Mpv..");
