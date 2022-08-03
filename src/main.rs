@@ -1,16 +1,18 @@
 extern crate skim;
 use skim::prelude::*;
 use std::fs;
-use std::process::Command;
 use std::{collections::HashMap, io::Cursor};
 
 mod channel;
 mod download;
-
-use platform_dirs::AppDirs;
+mod utils;
 
 use channel::Channel;
 use download::Downloader;
+
+use utils::open_mpv;
+
+use platform_dirs::AppDirs;
 
 pub fn main() {
     let d = Downloader::new();
@@ -23,18 +25,16 @@ pub fn main() {
 
     let options = SkimOptionsBuilder::default()
         .height(Some("100%"))
-        .multi(false)
+        .layout("reverse")
         .build()
         .unwrap();
 
-    // let json_path = format!("/home/{}/.cache/termv-rs/d.json", username());
     let mut json_path = AppDirs::new(Some("name"), true).unwrap().cache_dir;
     json_path.push("d.json");
 
     let json = fs::read_to_string(json_path).expect("Error reading data file");
 
     let channels: Vec<Channel> = serde_json::from_str(json.as_str()).unwrap();
-    // let names: Vec<String> = channels.iter().map(|f| f.name.clone()).collect();
 
     let mut map = HashMap::new();
 
@@ -64,30 +64,24 @@ pub fn main() {
         new_input.push_str(a.as_str());
     }
 
-    // // `SkimItemReader` is a helper to turn any `BufRead` into a stream of `SkimItem`
-    // // `SkimItem` was implemented for `AsRef<str>` by default
     let item_reader = SkimItemReader::default();
     let items = item_reader.of_bufread(Cursor::new(new_input));
 
-    // // // `run_with` would read and show items from the stream
-    let selected_items = Skim::run_with(&options, Some(items))
-        .map(|out| out.selected_items)
-        .unwrap_or_else(|| Vec::new());
+    let skim_output = Skim::run_with(&options, Some(items)).unwrap();
 
-    let mut url = "https://google.com";
-
-    for item in selected_items.iter() {
-        let i = item.output();
-        let s = i.split('|').rev().last().unwrap().trim_end();
-        url = map.get(s).unwrap();
+    if skim_output.is_abort {
+        return;
     }
 
-    println!("Opening Mpv..");
+    let s = skim_output
+        .selected_items
+        .get(0)
+        .unwrap()
+        .output()
+        .to_string();
 
-    let mut output = Command::new("mpv")
-        .arg(url)
-        .spawn()
-        .expect("Error spawing mpv");
+    let channel_name = s.split('|').rev().last().unwrap().trim_end();
+    let url = map.get(channel_name.to_string().as_str()).unwrap();
 
-    output.wait().unwrap();
+    open_mpv(url.to_string());
 }
