@@ -7,7 +7,7 @@ use std::{collections::HashMap, io::Cursor};
 mod channel;
 mod download;
 
-use whoami::username;
+use platform_dirs::AppDirs;
 
 use channel::Channel;
 use download::Downloader;
@@ -27,7 +27,9 @@ pub fn main() {
         .build()
         .unwrap();
 
-    let json_path = format!("/home/{}/.cache/termv-rs/d.json", username());
+    // let json_path = format!("/home/{}/.cache/termv-rs/d.json", username());
+    let mut json_path = AppDirs::new(Some("name"), true).unwrap().cache_dir;
+    json_path.push("d.json");
 
     let json = fs::read_to_string(json_path).expect("Error reading data file");
 
