@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::Path;
+use std::time::{Duration, SystemTime};
 
 use whoami::username;
 
@@ -49,7 +50,25 @@ impl Downloader {
         println!("Done!");
     }
 
+    fn should_update(&self) -> bool {
+        let metadata = fs::metadata(self.etag_path.as_str()).unwrap();
+
+        let last_modified = metadata.modified().unwrap();
+        let now = SystemTime::now();
+
+        let one_day = Duration::new(86400, 0);
+
+        let difference = now
+            .duration_since(last_modified)
+            .expect("Error while calculating difference in time");
+
+        difference > one_day
+    }
+
     pub fn update_if_changed(&self) {
+        if !self.should_update() {
+            return;
+        };
         println!("Checking for updates..");
         let resp = ureq::get("https://iptv-org.github.io/iptv/channels.json")
             .set("Accept-Encoding", "gzip")
