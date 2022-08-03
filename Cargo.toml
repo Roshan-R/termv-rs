@@ -14,5 +14,5 @@ platform-dirs = "0.3.0"
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.
-opt-level = "z"  # Optimize for size.
+# opt-level = "z"  # Optimize for size.
 lto = true
