@@ -5,7 +5,7 @@ use std::process::Command;
 pub fn open_mpv(url: String) {
     let command = format!("mpv {}", url);
 
-    println!("Opening Mpv with url {}", url);
+    println!("Opening url {}", url);
 
     let mut output = if cfg!(target_os = "windows") {
         Command::new("cmd")

@@ -14,8 +14,24 @@ use utils::open_mpv;
 
 use platform_dirs::AppDirs;
 
+use clap::Parser;
+
+#[derive(Parser)]
+#[clap(name = "termv-rs")]
+struct Cli {
+    #[clap(short, long, action)]
+    update: bool,
+}
+
 pub fn main() {
+    let cli = Cli::parse();
+
     let d = Downloader::new();
+
+    if cli.update {
+        d.update();
+        return;
+    }
 
     if !d.check_file_exists() {
         d.first_download();
