@@ -1,7 +1,9 @@
+use colored::Colorize;
 use platform_dirs::AppDirs;
-use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
+use std::{fs, io};
 
 use ureq;
 
@@ -69,9 +71,10 @@ impl Downloader {
     }
 
     pub fn update(&self) {
-        println!("Updating json..         ");
+        print!("Downloading https://iptv-org.github.io/iptv/channels.json...  ");
+        io::stdout().flush().unwrap();
         self.download();
-        println!("Done!");
+        println!("{}", "Done!".green());
     }
 
     pub fn update_if_changed(&self) {
