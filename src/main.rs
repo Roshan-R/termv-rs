@@ -12,8 +12,6 @@ use download::Downloader;
 
 use utils::open_mpv;
 
-use platform_dirs::AppDirs;
-
 use clap::Parser;
 
 #[derive(Parser)]
@@ -46,10 +44,7 @@ pub fn main() {
         .build()
         .unwrap();
 
-    let mut json_path = AppDirs::new(Some("termv-rs"), true).unwrap().cache_dir;
-    json_path.push("d.json");
-
-    let json = fs::read_to_string(json_path).expect("Error reading data file");
+    let json = fs::read_to_string(d.json_path).expect("Error reading data file");
 
     let channels: Vec<Channel> = serde_json::from_str(json.as_str()).unwrap();
 
