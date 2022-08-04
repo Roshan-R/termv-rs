@@ -42,10 +42,11 @@ pub fn main() {
     let options = SkimOptionsBuilder::default()
         .height(Some("100%"))
         .layout("reverse")
+        .header(Some("Select channel (press Escape to exit)"))
         .build()
         .unwrap();
 
-    let mut json_path = AppDirs::new(Some("name"), true).unwrap().cache_dir;
+    let mut json_path = AppDirs::new(Some("termv-rs"), true).unwrap().cache_dir;
     json_path.push("d.json");
 
     let json = fs::read_to_string(json_path).expect("Error reading data file");
