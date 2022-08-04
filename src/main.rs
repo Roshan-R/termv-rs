@@ -16,7 +16,10 @@ use clap::Parser;
 
 #[derive(Parser)]
 #[clap(name = "termv-rs")]
+#[clap(version = "0.1")]
+#[clap(after_help = "   Improve me on GitHub:\n    https://github.com/Roshan-R/termv-rs")]
 struct Cli {
+    ///  Update channel list to latest version
     #[clap(short, long, action)]
     update: bool,
 }
