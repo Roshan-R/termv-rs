@@ -1,5 +1,5 @@
 use std::fs;
-use std::{collections::HashMap, io::Cursor};
+use std::{collections::HashMap};
 
 mod channel;
 mod download;
@@ -73,8 +73,8 @@ pub fn main() {
 
     let s = selector::get_user_selection(new_input);
 
-    let channel_name = s.split('|').rev().last().unwrap().trim_end();
-    let url = map.get(channel_name.to_string().as_str()).unwrap();
+    let channel_name = s.split('|').rev().last().expect("Could not get channel name").trim_end();
+    let url = map.get(channel_name.to_string().as_str()).expect("Unknown channel selected");
 
     open_mpv(url.to_string());
 }

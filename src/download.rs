@@ -15,7 +15,7 @@ pub struct Downloader {
 
 impl Downloader {
     pub fn new() -> Self {
-        let cache_dir = AppDirs::new(Some("termv-rs"), true).unwrap().cache_dir;
+        let cache_dir = AppDirs::new(Some("termv-rs"), true).expect("Could not get cache dir").cache_dir;
 
         let mut etag_path = cache_dir.clone();
         etag_path.push("etag");
@@ -38,7 +38,7 @@ impl Downloader {
         let resp = ureq::get("https://iptv-org.github.io/iptv/channels.json")
             .set("Accept-Encoding", "gzip")
             .call()
-            .unwrap();
+            .expect("Could not connect to the internet. Check if your net is working");
 
         let etag = resp.header("etag").unwrap();
         fs::write(self.etag_path.as_path(), etag).expect("Unable to write file");

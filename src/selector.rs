@@ -13,6 +13,7 @@ pub fn get_user_selection(buffer: String) -> String {
 
 
     let mut fzf = Command::new("fzf")
+        .args(["--reverse", "--header", "Select channel (press Escape to exit)"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
