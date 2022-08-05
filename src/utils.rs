@@ -21,3 +21,7 @@ pub fn open_mpv(url: String) {
     };
     output.wait().unwrap();
 }
+
+fn check_dependencies() -> bool {
+true
+}

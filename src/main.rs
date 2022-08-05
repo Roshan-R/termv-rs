@@ -1,11 +1,10 @@
-extern crate skim;
-use skim::prelude::*;
 use std::fs;
 use std::{collections::HashMap, io::Cursor};
 
 mod channel;
 mod download;
 mod utils;
+mod selector;
 
 use channel::Channel;
 use download::Downloader;
@@ -40,13 +39,6 @@ pub fn main() {
         d.update_if_changed();
     }
 
-    let options = SkimOptionsBuilder::default()
-        .height(Some("100%"))
-        .layout("reverse")
-        .header(Some("Select channel (press Escape to exit)"))
-        .build()
-        .unwrap();
-
     let json = fs::read_to_string(d.json_path).expect("Error reading data file");
 
     let channels: Vec<Channel> = serde_json::from_str(json.as_str()).unwrap();
@@ -79,21 +71,7 @@ pub fn main() {
         new_input.push_str(a.as_str());
     }
 
-    let item_reader = SkimItemReader::default();
-    let items = item_reader.of_bufread(Cursor::new(new_input));
-
-    let skim_output = Skim::run_with(&options, Some(items)).unwrap();
-
-    if skim_output.is_abort {
-        return;
-    }
-
-    let s = skim_output
-        .selected_items
-        .get(0)
-        .unwrap()
-        .output()
-        .to_string();
+    let s = selector::get_user_selection(new_input);
 
     let channel_name = s.split('|').rev().last().unwrap().trim_end();
     let url = map.get(channel_name.to_string().as_str()).unwrap();
