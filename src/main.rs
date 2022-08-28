@@ -48,7 +48,7 @@ pub fn main() {
         map.insert(channel.name.clone(), channel.url.clone());
     }
 
-    let mut new_input = String::new();
+    let mut f_input = String::new();
     for x in channels.into_iter() {
         let category = match x.categories.first() {
             Some(c) => c.name.clone(),
@@ -67,11 +67,11 @@ pub fn main() {
             "{:<50}  |{:<15} |{:<10} |{:<10}\n",
             x.name, category, language, country
         );
-        new_input.push_str(a.as_str());
+        f_input.push_str(a.as_str());
     }
 
     loop {
-        let s = match selector::get_user_selection(new_input.clone()) {
+        let s = match selector::get_user_selection(f_input.clone()) {
             Ok(e) => e,
             Err(_e) => return,
         };
