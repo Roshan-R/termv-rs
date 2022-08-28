@@ -27,3 +27,6 @@ pub fn has_dependencies() {
     use which::which;
     which("fzf").expect("Could not find fzf. See if it's installed or in your PATH");
 }
+
+#[cfg(not(target_os = "windows"))]
+pub fn has_dependencies() {}

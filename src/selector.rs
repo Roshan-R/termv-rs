@@ -1,10 +1,9 @@
-#[cfg(target_os = "windows")]
-
 #[derive(Debug)]
 pub enum UserSelectionResult {
-    None
+    None,
 }
 
+#[cfg(target_os = "windows")]
 pub fn get_user_selection(buffer: String) -> Result<String, UserSelectionResult> {
     use std::io::Write;
     use std::process::Command;
@@ -30,18 +29,17 @@ pub fn get_user_selection(buffer: String) -> Result<String, UserSelectionResult>
     let output = fzf
         .wait_with_output()
         .expect("Failed to read stdout of fzf");
-    
+
     let selection = String::from_utf8_lossy(&output.stdout).to_string();
 
     match selection.is_empty() {
         false => Ok(selection),
-        true => Err(UserSelectionResult::None)    
+        true => Err(UserSelectionResult::None),
     }
-    
 }
 
 #[cfg(not(target_os = "windows"))]
-pub fn get_user_selection(buffer: String) -> String {
+pub fn get_user_selection(buffer: String) -> Result<String, UserSelectionResult> {
     extern crate skim;
     use skim::prelude::SkimOptionsBuilder;
     use skim::prelude::*;
@@ -60,7 +58,7 @@ pub fn get_user_selection(buffer: String) -> String {
     let skim_output = Skim::run_with(&options, Some(items)).unwrap();
 
     if skim_output.is_abort {
-        return "null".to_string();
+        return Err(UserSelectionResult::None);
     }
 
     let s = skim_output
@@ -69,5 +67,5 @@ pub fn get_user_selection(buffer: String) -> String {
         .unwrap()
         .output()
         .to_string();
-    return s;
+    return Ok(s);
 }
