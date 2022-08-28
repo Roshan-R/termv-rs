@@ -21,6 +21,10 @@ struct Cli {
     ///  Update channel list to latest version
     #[clap(short, long, action)]
     update: bool,
+
+    ///  Open player in fullscreen
+    #[clap(short, long, action)]
+    fullscreen: bool,
 }
 
 pub fn main() {
@@ -82,10 +86,9 @@ pub fn main() {
             .last()
             .expect("Could not get channel name")
             .trim_end();
-        let url = map
-            .get(channel_name.to_string().as_str())
-            .expect("Unknown channel selected");
 
-        open_mpv(url.to_string());
+        let url = map.get(channel_name).expect("Unknown channel selected");
+
+        open_mpv(url.to_string(), cli.fullscreen);
     }
 }
