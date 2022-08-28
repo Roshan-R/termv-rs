@@ -1,10 +1,10 @@
+use std::collections::HashMap;
 use std::fs;
-use std::{collections::HashMap};
 
 mod channel;
 mod download;
-mod utils;
 mod selector;
+mod utils;
 
 use channel::Channel;
 use download::Downloader;
@@ -26,7 +26,7 @@ struct Cli {
 pub fn main() {
     let cli = Cli::parse();
     utils::has_dependencies();
-    
+
     let d = Downloader::new();
 
     if cli.update {
@@ -70,10 +70,22 @@ pub fn main() {
         new_input.push_str(a.as_str());
     }
 
-    let s = selector::get_user_selection(new_input);
+    loop {
+        let s = match selector::get_user_selection(new_input.clone()) {
+            Ok(e) => e,
+            Err(_e) => return,
+        };
 
-    let channel_name = s.split('|').rev().last().expect("Could not get channel name").trim_end();
-    let url = map.get(channel_name.to_string().as_str()).expect("Unknown channel selected");
+        let channel_name = s
+            .split('|')
+            .rev()
+            .last()
+            .expect("Could not get channel name")
+            .trim_end();
+        let url = map
+            .get(channel_name.to_string().as_str())
+            .expect("Unknown channel selected");
 
-    open_mpv(url.to_string());
+        open_mpv(url.to_string());
+    }
 }

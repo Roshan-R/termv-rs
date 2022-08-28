@@ -1,5 +1,11 @@
 #[cfg(target_os = "windows")]
-pub fn get_user_selection(buffer: String) -> String {
+
+#[derive(Debug)]
+pub enum UserSelectionResult {
+    None
+}
+
+pub fn get_user_selection(buffer: String) -> Result<String, UserSelectionResult> {
     use std::io::Write;
     use std::process::Command;
     use std::process::Stdio;
@@ -24,7 +30,14 @@ pub fn get_user_selection(buffer: String) -> String {
     let output = fzf
         .wait_with_output()
         .expect("Failed to read stdout of fzf");
-    String::from_utf8_lossy(&output.stdout).to_string()
+    
+    let selection = String::from_utf8_lossy(&output.stdout).to_string();
+
+    match selection.is_empty() {
+        false => Ok(selection),
+        true => Err(UserSelectionResult::None)    
+    }
+    
 }
 
 #[cfg(not(target_os = "windows"))]
