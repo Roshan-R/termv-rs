@@ -22,6 +22,8 @@ pub fn open_mpv(url: String) {
     output.wait().unwrap();
 }
 
-fn check_dependencies() -> bool {
-true
+#[cfg(target_os = "windows")]
+pub fn has_dependencies() {
+    use which::which;
+    which("fzf").expect("Could not find fzf. See if it's installed or in your PATH");
 }

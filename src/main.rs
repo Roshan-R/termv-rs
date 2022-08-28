@@ -25,7 +25,8 @@ struct Cli {
 
 pub fn main() {
     let cli = Cli::parse();
-
+    utils::has_dependencies();
+    
     let d = Downloader::new();
 
     if cli.update {
@@ -40,9 +41,7 @@ pub fn main() {
     }
 
     let json = fs::read_to_string(d.json_path).expect("Error reading data file");
-
     let channels: Vec<Channel> = serde_json::from_str(json.as_str()).unwrap();
-
     let mut map = HashMap::new();
 
     for channel in channels.iter() {
