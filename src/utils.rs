@@ -2,8 +2,14 @@
 
 use std::process::Command;
 
-pub fn open_mpv(url: String) {
-    let command = format!("mpv {}", url);
+pub fn open_mpv(url: String, fullscreen: bool) {
+    let command: String;
+
+    if fullscreen {
+        command = format!("mpv --fs {}", url);
+    } else {
+        command = format!("mpv {}", url);
+    }
 
     println!("Fetching channel, please wait...");
 
@@ -21,3 +27,12 @@ pub fn open_mpv(url: String) {
     };
     output.wait().unwrap();
 }
+
+#[cfg(target_os = "windows")]
+pub fn has_dependencies() {
+    use which::which;
+    which("fzf").expect("Could not find fzf. See if it's installed or in your PATH");
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn has_dependencies() {}

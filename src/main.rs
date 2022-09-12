@@ -1,10 +1,9 @@
-extern crate skim;
-use skim::prelude::*;
+use std::collections::HashMap;
 use std::fs;
-use std::{collections::HashMap, io::Cursor};
 
 mod channel;
 mod download;
+mod selector;
 mod utils;
 
 use channel::Channel;
@@ -22,10 +21,15 @@ struct Cli {
     ///  Update channel list to latest version
     #[clap(short, long, action)]
     update: bool,
+
+    ///  Open player in fullscreen
+    #[clap(short, long, action)]
+    fullscreen: bool,
 }
 
 pub fn main() {
     let cli = Cli::parse();
+    utils::has_dependencies();
 
     let d = Downloader::new();
 
@@ -40,24 +44,15 @@ pub fn main() {
         d.update_if_changed();
     }
 
-    let options = SkimOptionsBuilder::default()
-        .height(Some("100%"))
-        .layout("reverse")
-        .header(Some("Select channel (press Escape to exit)"))
-        .build()
-        .unwrap();
-
     let json = fs::read_to_string(d.json_path).expect("Error reading data file");
-
     let channels: Vec<Channel> = serde_json::from_str(json.as_str()).unwrap();
-
     let mut map = HashMap::new();
 
     for channel in channels.iter() {
         map.insert(channel.name.clone(), channel.url.clone());
     }
 
-    let mut new_input = String::new();
+    let mut f_input = String::new();
     for x in channels.into_iter() {
         let category = match x.categories.first() {
             Some(c) => c.name.clone(),
@@ -76,27 +71,24 @@ pub fn main() {
             "{:<50}  |{:<15} |{:<10} |{:<10}\n",
             x.name, category, language, country
         );
-        new_input.push_str(a.as_str());
+        f_input.push_str(a.as_str());
     }
 
-    let item_reader = SkimItemReader::default();
-    let items = item_reader.of_bufread(Cursor::new(new_input));
+    loop {
+        let s = match selector::get_user_selection(f_input.clone()) {
+            Ok(e) => e,
+            Err(_e) => return,
+        };
 
-    let skim_output = Skim::run_with(&options, Some(items)).unwrap();
+        let channel_name = s
+            .split('|')
+            .rev()
+            .last()
+            .expect("Could not get channel name")
+            .trim_end();
 
-    if skim_output.is_abort {
-        return;
+        let url = map.get(channel_name).expect("Unknown channel selected");
+
+        open_mpv(url.to_string(), cli.fullscreen);
     }
-
-    let s = skim_output
-        .selected_items
-        .get(0)
-        .unwrap()
-        .output()
-        .to_string();
-
-    let channel_name = s.split('|').rev().last().unwrap().trim_end();
-    let url = map.get(channel_name.to_string().as_str()).unwrap();
-
-    open_mpv(url.to_string());
 }
