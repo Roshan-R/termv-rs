@@ -28,11 +28,15 @@ pub fn open_mpv(url: String, fullscreen: bool) {
     output.wait().unwrap();
 }
 
-#[cfg(target_os = "windows")]
 pub fn has_dependencies() {
-    use which::which;
-    which("fzf").expect("Could not find fzf. See if it's installed or in your PATH");
-}
+    let mut dependencies = vec!["mpv"];
 
-#[cfg(not(target_os = "windows"))]
-pub fn has_dependencies() {}
+    if cfg!(windows) {
+        dependencies.push("fzf");
+    }
+
+    for d in dependencies {
+        which::which(d)
+            .expect(format!("Cannot find {} in PATH. See if it's installed or not", d).as_str());
+    }
+}
