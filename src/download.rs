@@ -11,11 +11,14 @@ pub struct Downloader {
     cache_dir: PathBuf,
     pub json_path: PathBuf,
     etag_path: PathBuf,
+    url: String,
 }
 
 impl Downloader {
-    pub fn new() -> Self {
-        let cache_dir = AppDirs::new(Some("termv-rs"), true).expect("Could not get cache dir").cache_dir;
+    pub fn new(url: String) -> Self {
+        let cache_dir = AppDirs::new(Some("termv-rs"), true)
+            .expect("Could not get cache dir")
+            .cache_dir;
 
         let mut etag_path = cache_dir.clone();
         etag_path.push("etag");
@@ -27,6 +30,7 @@ impl Downloader {
             cache_dir,
             json_path,
             etag_path,
+            url,
         }
     }
 
@@ -35,7 +39,7 @@ impl Downloader {
     }
 
     fn download(&self) {
-        let resp = ureq::get("https://iptv-org.github.io/iptv/channels.json")
+        let resp = ureq::get(self.url.as_str())
             .set("Accept-Encoding", "gzip")
             .call()
             .expect("Could not connect to the internet. Check if your net is working");
@@ -71,7 +75,7 @@ impl Downloader {
     }
 
     pub fn update(&self) {
-        print!("Downloading https://iptv-org.github.io/iptv/channels.json...  ");
+        print!("Downloading {}...  ", self.url.as_str());
         io::stdout().flush().unwrap();
         self.download();
         println!("{}", "Done!".green());

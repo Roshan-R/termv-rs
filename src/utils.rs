@@ -2,14 +2,11 @@
 
 use std::process::Command;
 
-pub fn open_mpv(url: String, fullscreen: bool) {
+pub fn open_mpv(url: String, args: String) {
     let command: String;
 
-    if fullscreen {
-        command = format!("mpv --fs {}", url);
-    } else {
-        command = format!("mpv {}", url);
-    }
+    command = format!("mpv {} {}", args, url);
+    dbg!(command.clone());
 
     println!("Fetching channel, please wait...");
 

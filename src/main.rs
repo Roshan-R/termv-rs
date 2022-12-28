@@ -18,20 +18,53 @@ use clap::Parser;
 #[clap(version = "0.1")]
 #[clap(after_help = "   Improve me on GitHub:\n    https://github.com/Roshan-R/termv-rs")]
 struct Cli {
+    ///Auto update channel list to latest version.
+    #[clap(env = "TERMV_AUTO_UPDATE", default_value = "true")]
+    auto_update: String,
+
     ///  Update channel list to latest version
     #[clap(short, long, action)]
     update: bool,
 
     ///  Open player in fullscreen
-    #[clap(short, long, action)]
+    #[clap(short, long)]
     fullscreen: bool,
+
+    /// Always open mpv in fullscreen.
+    #[clap(env = "TERMV_FULL_SCREEN", default_value = "false")]
+    env_fullscreen: String,
+
+    ///Default arguments which are passed to mpv.
+    #[clap(
+        env = "TERMV_DEFAULT_MPV_FLAGS",
+        default_value = "--no-resume-playback"
+    )]
+    mpv_flags: String,
+
+    ///URL to the channel list. Any other URL must be in the same format as the default one.
+    #[clap(
+        env = "TERMV_API_URL",
+        default_value = "https://iptv-org.github.io/iptv/channels.json"
+    )]
+    api_url: String,
 }
 
 pub fn main() {
     let cli = Cli::parse();
     utils::has_dependencies();
 
-    let d = Downloader::new();
+    dbg!(cli.auto_update.clone());
+    dbg!(cli.env_fullscreen.clone());
+    dbg!(cli.mpv_flags.clone());
+    dbg!(cli.api_url.clone());
+
+    let mut flags = cli.mpv_flags;
+
+    if cli.env_fullscreen.as_str() == "true" || cli.fullscreen {
+        flags.push_str(" --fs")
+    }
+
+    let d = Downloader::new(cli.api_url);
 
     if cli.update {
         d.update();
@@ -40,7 +73,7 @@ pub fn main() {
 
     if !d.check_file_exists() {
         d.first_download();
-    } else {
+    } else if cli.auto_update.as_str() == "true" {
         d.update_if_changed();
     }
 
@@ -89,6 +122,6 @@ pub fn main() {
 
         let url = map.get(channel_name).expect("Unknown channel selected");
 
-        open_mpv(url.to_string(), cli.fullscreen);
+        open_mpv(url.to_string(), flags.clone());
     }
 }
