@@ -53,10 +53,10 @@ pub fn main() {
     let cli = Cli::parse();
     utils::has_dependencies();
 
-    dbg!(cli.auto_update.clone());
-    dbg!(cli.env_fullscreen.clone());
-    dbg!(cli.mpv_flags.clone());
-    dbg!(cli.api_url.clone());
+    // dbg!(cli.auto_update.clone());
+    // dbg!(cli.env_fullscreen.clone());
+    // dbg!(cli.mpv_flags.clone());
+    // dbg!(cli.api_url.clone());
 
     let mut flags = cli.mpv_flags;
 
