@@ -1,6 +1,13 @@
 [package]
 name = "termv-rs"
+authors = ["Roshan-R <roshanr2001@gmail.com>"]
+description = """
+Termv. Now blazingly fast
+"""
+homepage = "https://github.com/Roshan-R/termv-rs"
+repository = "https://github.com/Roshan-R/termv-rs"
 version = "0.1.0"
+license = "GPL3"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
