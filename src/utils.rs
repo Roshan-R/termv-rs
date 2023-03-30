@@ -2,11 +2,12 @@
 
 use std::process::Command;
 
-pub fn open_mpv(url: String, args: String) {
+pub fn open_mpv(mut url: String, args: String) {
+    url = url.replace("(", r"\(").replace(")", r"\)");
+
     let command: String;
 
     command = format!("mpv {} {}", args, url);
-    dbg!(command.clone());
 
     println!("Fetching channel, please wait...");
 
