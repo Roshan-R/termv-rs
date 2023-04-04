@@ -1,23 +1,26 @@
 use std::collections::HashMap;
 use std::fs;
 
-mod channel;
 mod download;
 mod selector;
+mod types;
 mod utils;
 
-use channel::Channel;
 use download::Downloader;
+use types::Channel;
 
 use utils::open_mpv;
 
 use clap::Parser;
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[clap(name = "termv-rs")]
 #[clap(version = "0.1")]
 #[clap(after_help = "   Improve me on GitHub:\n    https://github.com/Roshan-R/termv-rs")]
 struct Cli {
+    #[clap(default_value = "")]
+    query: String,
+
     ///Auto update channel list to latest version.
     #[clap(env = "TERMV_AUTO_UPDATE", default_value = "true")]
     auto_update: String,
@@ -41,74 +44,83 @@ struct Cli {
     )]
     mpv_flags: String,
 
+    ///URL to the channels list. Any other URL must be in the same format as the default one.
+    #[clap(
+        env = "TERMV_CHANNELS_URL",
+        default_value = "https://iptv-org.github.io/api/channels.json"
+    )]
+    channels_url: String,
+
     ///URL to the channel list. Any other URL must be in the same format as the default one.
     #[clap(
-        env = "TERMV_API_URL",
-        default_value = "https://iptv-org.github.io/iptv/channels.json"
+        env = "TERMV_STREAMS_URL",
+        default_value = "https://iptv-org.github.io/api/streams.json"
     )]
-    api_url: String,
+    streams_url: String,
 }
 
 pub fn main() {
-    let cli = Cli::parse();
+    let args = Cli::parse();
     utils::has_dependencies();
 
-    // dbg!(cli.auto_update.clone());
-    // dbg!(cli.env_fullscreen.clone());
-    // dbg!(cli.mpv_flags.clone());
-    // dbg!(cli.api_url.clone());
+    let mut flags = args.mpv_flags;
 
-    let mut flags = cli.mpv_flags;
-
-    if cli.env_fullscreen.as_str() == "true" || cli.fullscreen {
+    if args.env_fullscreen.as_str() == "true" || args.fullscreen {
         flags.push_str(" --fs")
     }
 
-    let d = Downloader::new(cli.api_url);
+    let d = Downloader::new(args.streams_url, args.channels_url);
 
-    if cli.update {
+    if args.update {
         d.update();
         return;
     }
 
     if !d.check_file_exists() {
         d.first_download();
-    } else if cli.auto_update.as_str() == "true" {
+    } else if args.auto_update.as_str() == "true" {
         d.update_if_changed();
     }
 
-    let json = fs::read_to_string(d.json_path).expect("Error reading data file");
-    let channels: Vec<Channel> = serde_json::from_str(json.as_str()).unwrap();
-    let mut map = HashMap::new();
-
-    for channel in channels.iter() {
-        map.insert(channel.name.clone(), channel.url.clone());
-    }
-
+    let channels_json = fs::read_to_string(d.json_path.clone()).unwrap();
+    let channels: Vec<Channel> = serde_json::from_str(channels_json.as_str()).unwrap();
     let mut f_input = String::new();
-    for x in channels.into_iter() {
-        let category = match x.categories.first() {
-            Some(c) => c.name.clone(),
-            None => "Null".to_string(),
-        };
-        let language = match x.languages.first() {
-            Some(c) => c.name.clone(),
-            None => "Null".to_string(),
-        };
-        let country = match x.countries.first() {
-            Some(c) => c.name.clone(),
-            None => "Null".to_string(),
-        };
 
+    let mut map: HashMap<String, String> = HashMap::new();
+
+    for x in &channels {
+        let name = x.name.clone().unwrap_or("Null".to_string());
+        let id = x.id.clone().unwrap_or("Null".to_string());
+        map.insert(name.clone(), id);
+        let country = x.country.clone().unwrap_or("Null".to_string());
+        let language = match x
+            .languages
+            .clone()
+            .unwrap_or(vec!["Null".to_string()])
+            .first()
+        {
+            Some(c) => c.clone(),
+            None => "Null".to_string(),
+        };
+        let category = match x
+            .categories
+            .clone()
+            .unwrap_or(vec!["Null".to_string()])
+            .first()
+        {
+            Some(c) => c.clone(),
+            None => "Null".to_string(),
+        };
         let a = format!(
             "{:<50}  |{:<15} |{:<10} |{:<10}\n",
-            x.name, category, language, country
+            name, category, language, country
         );
         f_input.push_str(a.as_str());
+        // let is_nsfw = x.is_nsfw.unwrap_or("Null".to_string());
     }
 
     loop {
-        let s = match selector::get_user_selection(f_input.clone()) {
+        let s = match selector::get_user_selection(f_input.clone(), args.query.clone()) {
             Ok(e) => e,
             Err(_e) => return,
         };
@@ -120,8 +132,13 @@ pub fn main() {
             .expect("Could not get channel name")
             .trim_end();
 
-        let url = map.get(channel_name).expect("Unknown channel selected");
+        let url = &channels
+            .iter()
+            .find(|x| x.name.clone().unwrap() == channel_name)
+            .unwrap()
+            .stream
+            .url;
 
-        open_mpv(url.to_string(), flags.clone());
+        open_mpv(url.clone().unwrap().to_owned(), flags.clone());
     }
 }
