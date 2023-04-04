@@ -39,13 +39,14 @@ pub fn get_user_selection(buffer: String) -> Result<String, UserSelectionResult>
 }
 
 #[cfg(not(target_os = "windows"))]
-pub fn get_user_selection(buffer: String) -> Result<String, UserSelectionResult> {
+pub fn get_user_selection(buffer: String, query: String) -> Result<String, UserSelectionResult> {
     extern crate skim;
     use skim::prelude::SkimOptionsBuilder;
     use skim::prelude::*;
 
     use std::io::Cursor;
     let options = SkimOptionsBuilder::default()
+        .query(Some(query.as_str()))
         .height(Some("100%"))
         .layout("reverse")
         .header(Some("Select channel (press Escape to exit)"))

@@ -13,11 +13,14 @@ use utils::open_mpv;
 
 use clap::Parser;
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[clap(name = "termv-rs")]
 #[clap(version = "0.1")]
 #[clap(after_help = "   Improve me on GitHub:\n    https://github.com/Roshan-R/termv-rs")]
 struct Cli {
+    #[clap(default_value = "")]
+    query: String,
+
     ///Auto update channel list to latest version.
     #[clap(env = "TERMV_AUTO_UPDATE", default_value = "true")]
     auto_update: String,
@@ -117,7 +120,7 @@ pub fn main() {
     }
 
     loop {
-        let s = match selector::get_user_selection(f_input.clone()) {
+        let s = match selector::get_user_selection(f_input.clone(), args.query.clone()) {
             Ok(e) => e,
             Err(_e) => return,
         };
