@@ -1,3 +1,5 @@
+use crate::Channel;
+
 #[derive(Debug)]
 pub enum UserSelectionResult {
     None,
@@ -39,34 +41,29 @@ pub fn get_user_selection(buffer: String) -> Result<String, UserSelectionResult>
 }
 
 #[cfg(not(target_os = "windows"))]
-pub fn get_user_selection(buffer: String, query: String) -> Result<String, UserSelectionResult> {
+pub fn get_user_selection(
+    query: String,
+    channels: Vec<Channel>,
+) -> Result<String, UserSelectionResult> {
     extern crate skim;
-    use skim::prelude::SkimOptionsBuilder;
+
     use skim::prelude::*;
 
-    use std::io::Cursor;
     let options = SkimOptionsBuilder::default()
-        .query(Some(query.as_str()))
-        .height(Some("100%"))
-        .layout("reverse")
-        .header(Some("Select channel (press Escape to exit)"))
+        .query(Some(query))
+        .height("100%".to_string())
+        .layout("reverse".to_string())
+        .header(Some("Select channel (press Escape to exit)".to_string()))
         .build()
         .unwrap();
 
-    let item_reader = SkimItemReader::default();
-    let items = item_reader.of_bufread(Cursor::new(buffer));
-
-    let skim_output = Skim::run_with(&options, Some(items)).unwrap();
-
-    if skim_output.is_abort {
-        return Err(UserSelectionResult::None);
+    let (tx_item, rx_item): (SkimItemSender, SkimItemReceiver) = unbounded();
+    for channel in channels {
+        let _ = tx_item.send(Arc::new(channel));
     }
-
-    let s = skim_output
-        .selected_items
-        .get(0)
-        .unwrap()
-        .output()
-        .to_string();
-    return Ok(s);
+    let selected_items = Skim::run_with(&options, Some(rx_item))
+        .map(|out| out.selected_items)
+        .unwrap();
+    let first_item = selected_items.first().unwrap();
+    return Ok(first_item.output().to_string());
 }
