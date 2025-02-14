@@ -54,6 +54,7 @@ pub fn get_user_selection(
         .height("100%".to_string())
         .layout("reverse".to_string())
         .header(Some("Select channel (press Escape to exit)".to_string()))
+        .no_multi(true)
         .build()
         .unwrap();
 
@@ -61,9 +62,10 @@ pub fn get_user_selection(
     for channel in channels {
         let _ = tx_item.send(Arc::new(channel));
     }
-    let selected_items = Skim::run_with(&options, Some(rx_item))
-        .map(|out| out.selected_items)
-        .unwrap();
-    let first_item = selected_items.first().unwrap();
+    let output = Skim::run_with(&options, Some(rx_item)).unwrap();
+    if output.final_event == Event::EvActAbort {
+        panic!("Killed me");
+    }
+    let first_item = output.selected_items.first().unwrap();
     return Ok(first_item.output().to_string());
 }

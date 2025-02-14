@@ -1,6 +1,12 @@
 use args::Args;
 use clap::Parser;
 use std::collections::HashMap;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use std::thread;
+use std::time::Duration;
 use types::{Channel, Config, Stream};
 use utils::open_mpv;
 
@@ -36,7 +42,6 @@ fn main() {
         }
     }
 
-    // Now, iterate over the channels and assign the corresponding stream
     for channel in &mut channels {
         if let Some(ref id) = channel.id {
             if let Some(stream) = stream_map.get(id) {
@@ -50,18 +55,29 @@ fn main() {
         .filter(|c| c.stream.url.is_some())
         .collect();
 
-    loop {
+    let running = Arc::new(AtomicBool::new(true));
+
+    // Handle SIGINT (Ctrl+C)
+    let running_clone = Arc::clone(&running);
+    ctrlc::set_handler(move || {
+        running_clone.store(false, Ordering::SeqCst);
+    })
+    .expect("Error setting Ctrl+C handler");
+
+    while running.load(Ordering::SeqCst) {
         let channel_id: String =
             match selector::get_user_selection("".to_string(), filtered_channels.clone()) {
                 Ok(e) => e,
-                Err(_e) => return,
+                Err(_e) => break,
             };
 
         if let Some(stream_url) = stream_map.get(&channel_id).and_then(|s| s.url.as_ref()) {
-            dbg!(stream_url);
             open_mpv(stream_url.to_string(), args.mpv_flags.clone());
         } else {
             eprintln!("Error: No stream found for selected channel.");
         }
+
+        // Sleep briefly to allow signal handling
+        thread::sleep(Duration::from_millis(100));
     }
 }

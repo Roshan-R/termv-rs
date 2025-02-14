@@ -5,9 +5,7 @@ use std::process::Command;
 pub fn open_mpv(mut url: String, args: String) {
     url = url.replace("(", r"\(").replace(")", r"\)");
 
-    let command: String;
-
-    command = format!("mpv {} {}", args, url);
+    let command = format!("mpv {} {}", args, url);
 
     println!("Fetching channel, please wait...");
 
