@@ -1,5 +1,5 @@
 # termv-rs
-Termv-rs is a WIP rewrite of termv in rust. 
+Termv-rs is a complete rewrite of [termv](https://github.com/Roshan-R/termv) in rust. 
 
 Along with the speed improvements, Termv-rs now works in windows too provided that fzf is installed. 
 
