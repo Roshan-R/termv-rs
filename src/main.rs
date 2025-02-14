@@ -1,144 +1,83 @@
+use args::Args;
+use clap::Parser;
 use std::collections::HashMap;
-use std::fs;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use std::thread;
+use std::time::Duration;
+use types::{Channel, Config, Stream};
+use utils::open_mpv;
 
-mod download;
+mod args;
+mod downloader;
 mod selector;
 mod types;
 mod utils;
 
-use download::Downloader;
-use types::Channel;
+use crate::downloader::{DownloadTrait, Downloader};
 
-use utils::open_mpv;
+const CHANNELS_URL: &str = "https://iptv-org.github.io/api/channels.json";
+const STREAMS_URL: &str = "https://iptv-org.github.io/api/streams.json";
 
-use clap::Parser;
-
-#[derive(Parser, Debug)]
-#[clap(name = "termv-rs")]
-#[clap(version = "0.1")]
-#[clap(after_help = "   Improve me on GitHub:\n    https://github.com/Roshan-R/termv-rs")]
-struct Cli {
-    #[clap(default_value = "")]
-    query: String,
-
-    ///Auto update channel list to latest version.
-    #[clap(env = "TERMV_AUTO_UPDATE", default_value = "true")]
-    auto_update: String,
-
-    ///  Update channel list to latest version
-    #[clap(short, long, action)]
-    update: bool,
-
-    ///  Open player in fullscreen
-    #[clap(short, long)]
-    fullscreen: bool,
-
-    /// Always open mpv in fullscreen.
-    #[clap(env = "TERMV_FULL_SCREEN", default_value = "false")]
-    env_fullscreen: String,
-
-    ///Default arguments which are passed to mpv.
-    #[clap(
-        env = "TERMV_DEFAULT_MPV_FLAGS",
-        default_value = "--no-resume-playback"
-    )]
-    mpv_flags: String,
-
-    ///URL to the channels list. Any other URL must be in the same format as the default one.
-    #[clap(
-        env = "TERMV_CHANNELS_URL",
-        default_value = "https://iptv-org.github.io/api/channels.json"
-    )]
-    channels_url: String,
-
-    ///URL to the channel list. Any other URL must be in the same format as the default one.
-    #[clap(
-        env = "TERMV_STREAMS_URL",
-        default_value = "https://iptv-org.github.io/api/streams.json"
-    )]
-    streams_url: String,
-}
-
-pub fn main() {
-    let args = Cli::parse();
-    utils::has_dependencies();
-
-    let mut flags = args.mpv_flags;
-
-    if args.env_fullscreen.as_str() == "true" || args.fullscreen {
-        flags.push_str(" --fs")
-    }
-
-    let d = Downloader::new(args.streams_url, args.channels_url);
+fn main() {
+    let args = Args::parse();
+    let config = Config::new(CHANNELS_URL, STREAMS_URL);
+    let downloader = Downloader::new(config.clone());
 
     if args.update {
-        d.update();
-        return;
+        downloader.update_if_changed();
+    } else {
+        downloader.do_it();
     }
 
-    if !d.check_file_exists() {
-        d.first_download();
-    } else if args.auto_update.as_str() == "true" {
-        d.update_if_changed();
+    let mut channels = Channel::load(&config);
+    let streams = Stream::load(&config);
+
+    let mut stream_map: HashMap<&String, &Stream> = HashMap::new();
+    for stream in &streams {
+        if let Some(id) = &stream.id {
+            stream_map.insert(id, &stream);
+        }
     }
 
-    let channels_json = fs::read_to_string(d.json_path.clone()).unwrap();
-    let channels: Vec<Channel> = serde_json::from_str(channels_json.as_str()).unwrap();
-    let mut f_input = String::new();
-
-    let mut map: HashMap<String, String> = HashMap::new();
-
-    for x in &channels {
-        let name = x.name.clone().unwrap_or("Null".to_string());
-        let id = x.id.clone().unwrap_or("Null".to_string());
-        map.insert(name.clone(), id);
-        let country = x.country.clone().unwrap_or("Null".to_string());
-        let language = match x
-            .languages
-            .clone()
-            .unwrap_or(vec!["Null".to_string()])
-            .first()
-        {
-            Some(c) => c.clone(),
-            None => "Null".to_string(),
-        };
-        let category = match x
-            .categories
-            .clone()
-            .unwrap_or(vec!["Null".to_string()])
-            .first()
-        {
-            Some(c) => c.clone(),
-            None => "Null".to_string(),
-        };
-        let a = format!(
-            "{:<50}  |{:<15} |{:<10} |{:<10}\n",
-            name, category, language, country
-        );
-        f_input.push_str(a.as_str());
-        // let is_nsfw = x.is_nsfw.unwrap_or("Null".to_string());
+    for channel in &mut channels {
+        if let Some(ref id) = channel.id {
+            if let Some(stream) = stream_map.get(id) {
+                channel.stream = stream.to_owned().to_owned();
+            }
+        }
     }
 
-    loop {
-        let s = match selector::get_user_selection(f_input.clone(), args.query.clone()) {
-            Ok(e) => e,
-            Err(_e) => return,
-        };
+    let filtered_channels: Vec<Channel> = channels
+        .into_iter()
+        .filter(|c| c.stream.url.is_some())
+        .collect();
 
-        let channel_name = s
-            .split('|')
-            .rev()
-            .last()
-            .expect("Could not get channel name")
-            .trim_end();
+    let running = Arc::new(AtomicBool::new(true));
 
-        let url = &channels
-            .iter()
-            .find(|x| x.name.clone().unwrap() == channel_name)
-            .unwrap()
-            .stream
-            .url;
+    // Handle SIGINT (Ctrl+C)
+    let running_clone = Arc::clone(&running);
+    ctrlc::set_handler(move || {
+        running_clone.store(false, Ordering::SeqCst);
+    })
+    .expect("Error setting Ctrl+C handler");
 
-        open_mpv(url.clone().unwrap().to_owned(), flags.clone());
+    while running.load(Ordering::SeqCst) {
+        let channel_id: String =
+            match selector::get_user_selection("".to_string(), filtered_channels.clone()) {
+                Ok(e) => e,
+                Err(_e) => break,
+            };
+
+        if let Some(stream_url) = stream_map.get(&channel_id).and_then(|s| s.url.as_ref()) {
+            open_mpv(stream_url.to_string(), args.mpv_flags.clone());
+        } else {
+            eprintln!("Error: No stream found for selected channel.");
+        }
+
+        // Sleep briefly to allow signal handling
+        thread::sleep(Duration::from_millis(100));
     }
 }

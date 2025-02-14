@@ -20,6 +20,7 @@ platform-dirs = "0.3.0"
 clap = { version = "3.2.16", features = ["derive", "env"] }
 colored = "2.0.0"
 which = "4.2.5"
+ctrlc = "3.4.5"
 
 [target.'cfg(not(windows))'.dependencies]
 skim = "*"
