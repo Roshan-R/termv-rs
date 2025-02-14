@@ -3,6 +3,13 @@ Termv-rs is a complete rewrite of [termv](https://github.com/Roshan-R/termv) in 
 
 Along with the speed improvements, Termv-rs now works in windows too provided that fzf is installed. 
 
+
+
+
+https://github.com/user-attachments/assets/51d2dfef-862e-4782-b575-53b6b0120157
+
+
+
 ## Usage
 
 ```
